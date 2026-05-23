@@ -245,3 +245,21 @@ button {
 * {
     box-sizing: border-box;
 }
+
+.event-card {
+    cursor: pointer;
+}
+
+.event-card:hover {
+    transform: scale(1.02);
+
+    border-color:
+        rgba(
+            249,
+            115,
+            22,
+            0.7
+        );
+
+    transition: 0.2s;
+}

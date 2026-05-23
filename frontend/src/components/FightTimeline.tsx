@@ -8,9 +8,13 @@ type Event = {
 
 type Props = {
     events: Event[];
+    onSelectEvent: (time: number) => void;
 };
 
-function FightTimeline({ events }: Props) {
+function FightTimeline({
+    events,
+    onSelectEvent
+}: Props) {
     return (
         <div className="timeline">
 
@@ -23,41 +27,33 @@ function FightTimeline({ events }: Props) {
                     <div
                         key={index}
                         className="event-card"
+                        onClick={() =>
+                            onSelectEvent(
+                                event.time
+                            )
+                        }
                     >
                         <div>
-
                             <strong>
                                 {event.time}s
                             </strong>
-
                             {" "}
-
                             {event.fighter}
-
                         </div>
 
                         <div>
-
                             {event.hand}
-
                             {" "}
-
                             {event.punch_type}
-
                         </div>
 
                         <div>
-
                             confidence:
-
                             {" "}
-
                             {(
                                 event.confidence * 100
                             ).toFixed(0)}
-
                             %
-
                         </div>
 
                     </div>

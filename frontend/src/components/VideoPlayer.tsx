@@ -1,8 +1,14 @@
+import type { RefObject } from "react";
+
 type Props = {
     videoUrl: string;
+    videoRef: RefObject<HTMLVideoElement | null>;
 };
 
-function VideoPlayer({ videoUrl }: Props) {
+function VideoPlayer({
+    videoUrl,
+    videoRef
+}: Props) {
     return (
         <div className="video-container">
 
@@ -11,15 +17,14 @@ function VideoPlayer({ videoUrl }: Props) {
             </h2>
 
             <video
+                ref={videoRef}
                 controls
-                width="100%"
                 className="video-player"
             >
                 <source
                     src={`http://127.0.0.1:8000${videoUrl}`}
                 />
 
-                Your browser does not support video.
             </video>
 
         </div>

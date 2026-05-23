@@ -5,28 +5,26 @@ type Props = {
     videoRef: RefObject<HTMLVideoElement | null>;
 };
 
-function VideoPlayer({
-    videoUrl,
-    videoRef
-}: Props) {
+function VideoPlayer({ videoUrl, videoRef }: Props) {
     return (
         <div className="video-container">
+            <h2>Highlights нарезка</h2>
 
-            <h2>
-                Fight Video
-            </h2>
-
-            <video
-                ref={videoRef}
-                controls
-                className="video-player"
-            >
-                <source
-                    src={`http://127.0.0.1:8000${videoUrl}`}
-                />
-
-            </video>
-
+            {videoUrl ? (
+                <video
+                    ref={videoRef}
+                    controls
+                    className="video-player"
+                    key={videoUrl}
+                >
+                    <source src={videoUrl} type="video/mp4" />
+                </video>
+            ) : (
+                <div className="empty-state">
+                    <p>Видео не сгенерировано</p>
+                    <span>Похоже, что в бою не нашлось ударов.</span>
+                </div>
+            )}
         </div>
     );
 }

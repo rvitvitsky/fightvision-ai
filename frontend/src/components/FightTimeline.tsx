@@ -1,92 +1,61 @@
 import { useState } from "react";
-
-type Event = {
-    time: number;
-    fighter: string;
-    hand: string;
-    punch_type: string;
-    confidence: number;
-};
+import type { EventItem } from "../api";
 
 type Props = {
-    events: Event[];
+    events: EventItem[];
     onSelectEvent: (time: number) => void;
 };
 
-function FightTimeline({
-    events,
-    onSelectEvent
-}: Props) {
+function FightTimeline({ events, onSelectEvent }: Props) {
+    const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
-    const [selectedIndex, setSelectedIndex] =
-        useState<number | null>(null);
+    if (events.length === 0) {
+        return (
+            <div className="timeline">
+                <h2>Fight Timeline</h2>
+                <p style={{ color: "#94a3b8" }}>Ударов не найдено.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="timeline">
+            <h2>Fight Timeline</h2>
 
-            <h2>
-                Fight Timeline
-            </h2>
+            {events.map((event, index) => {
+                const isActive = selectedIndex === index;
+                const fighterClass = event.fighter === "red"
+                    ? "fighter-tag-red"
+                    : "fighter-tag-blue";
 
-            {
-                events.map((event, index) => (
+                return (
                     <div
                         key={index}
-                        className={
-                            selectedIndex === index
-                                ? "event-card active-event"
-                                : "event-card"
-                        }
+                        className={isActive ? "event-card active-event" : "event-card"}
                         onClick={() => {
-
                             setSelectedIndex(index);
-
-                            onSelectEvent(
-                                event.time
-                            );
+                            onSelectEvent(event.time);
                         }}
                     >
                         <div>
-
-                            <strong>
-                                {event.time}s
-                            </strong>
-
-                            {" "}
-
-                            {event.fighter}
-
+                            <strong>{event.time.toFixed(2)}s</strong>
+                            <span className={`fighter-tag ${fighterClass}`}>
+                                {event.fighter.toUpperCase()}
+                            </span>
                         </div>
 
                         <div>
-
-                            {event.hand}
-
-                            {" "}
-
-                            {event.punch_type}
-
+                            {event.hand} {event.punch_type}
+                            <br />
+                            <small>{event.target} · {event.effectiveness}</small>
                         </div>
 
                         <div>
-
-                            confidence:
-
-                            {" "}
-
-                            {(
-                                event.confidence * 100
-                            ).toFixed(0)
-                            }
-
-                            %
-
+                            conf: {(event.confidence * 100).toFixed(0)}%
                         </div>
-
                     </div>
-                ))
-            }
-
+                );
+            })}
         </div>
     );
 }

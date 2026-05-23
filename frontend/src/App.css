@@ -354,3 +354,164 @@ input:disabled {
             0.25
         );
 }
+/* ============================================================ */
+/* Дополнительные стили: ProgressBar + tags + effectiveness     */
+/* ============================================================ */
+
+.progress-card {
+    width: min(720px, 100%);
+    margin: 28px auto 0;
+    padding: 28px;
+    border-radius: 24px;
+    background: rgba(15, 23, 42, 0.78);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    color: #f8fafc;
+    text-align: left;
+    backdrop-filter: blur(14px);
+}
+
+.progress-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.progress-header h2 {
+    margin: 0;
+    font-size: 22px;
+}
+
+.progress-percent {
+    font-weight: 800;
+    font-size: 24px;
+    color: #f97316;
+}
+
+.progress-track {
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.18);
+    overflow: hidden;
+    margin-bottom: 14px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ef4444, #f97316);
+    border-radius: 999px;
+    transition: width 0.4s ease;
+}
+
+.progress-stage {
+    color: #cbd5e1;
+    margin: 8px 0 18px;
+    font-weight: 600;
+}
+
+.progress-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 18px;
+}
+
+.progress-steps .step {
+    color: #64748b;
+    font-size: 14px;
+    padding-left: 18px;
+    position: relative;
+}
+
+.progress-steps .step::before {
+    content: "○";
+    position: absolute;
+    left: 0;
+    color: #475569;
+}
+
+.progress-steps .step-active {
+    color: #f97316;
+    font-weight: 700;
+}
+
+.progress-steps .step-active::before {
+    content: "●";
+    color: #f97316;
+}
+
+.progress-steps .step-done {
+    color: #cbd5e1;
+}
+
+.progress-steps .step-done::before {
+    content: "✓";
+    color: #22c55e;
+}
+
+/* Fighter tags inside event cards */
+.fighter-tag {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.fighter-tag-red {
+    background: rgba(239, 68, 68, 0.22);
+    color: #fecaca;
+    border: 1px solid rgba(239, 68, 68, 0.6);
+}
+
+.fighter-tag-blue {
+    background: rgba(59, 130, 246, 0.22);
+    color: #bfdbfe;
+    border: 1px solid rgba(59, 130, 246, 0.6);
+}
+
+/* Summary cards */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 16px;
+}
+
+.fighter-card {
+    padding: 18px;
+    border-radius: 18px;
+    background: rgba(15, 23, 42, 0.5);
+}
+
+.fighter-card.red-card {
+    border: 1px solid rgba(239, 68, 68, 0.45);
+}
+
+.fighter-card.blue-card {
+    border: 1px solid rgba(59, 130, 246, 0.45);
+}
+
+.fighter-card h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.effectiveness-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(148, 163, 184, 0.15);
+    font-size: 13px;
+    color: #cbd5e1;
+}
+
+.event-card small {
+    color: #94a3b8;
+}

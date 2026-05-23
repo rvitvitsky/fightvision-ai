@@ -1,0 +1,76 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: fv_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: fv_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      FV_REDIS_URL: redis://redis:6379/0
+      FV_MEDIA_DIR: /data/media
+      FV_MAX_UPLOAD_MB: ${FV_MAX_UPLOAD_MB:-500}
+      FV_CORS_ORIGINS: '["http://localhost:5173","http://127.0.0.1:5173"]'
+    volumes:
+      - ./media:/data/media
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  ml_worker:
+    build: ./ml_worker
+    container_name: fv_ml_worker
+    restart: unless-stopped
+    environment:
+      FV_REDIS_URL: redis://redis:6379/0
+      FV_MEDIA_DIR: /data/media
+      FV_MODELS_DIR: /data/models
+      FV_YOLO_POSE_MODEL: ${FV_YOLO_POSE_MODEL:-yolov8n-pose.pt}
+    volumes:
+      - ./media:/data/media
+      - ./ml_worker/models:/data/models
+    depends_on:
+      redis:
+        condition: service_healthy
+    # Если есть NVIDIA GPU — раскомментируй:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  frontend:
+    build: ./frontend
+    container_name: fv_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_BASE: ${VITE_API_BASE:-http://localhost:8000}
+    depends_on:
+      - backend
+
+  telegram_bot:
+    build: ./telegram_bot
+    container_name: fv_telegram_bot
+    restart: unless-stopped
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      FV_BACKEND_URL: http://backend:8000
+    depends_on:
+      - backend
+    profiles:
+      - bot  # запускается только если профиль активирован: docker compose --profile bot up

@@ -1,0 +1,32 @@
+# Очередь и redis
+redis==5.2.1
+rq==2.1.0
+
+# Базовое
+numpy==1.26.4
+pandas==2.2.3
+scipy==1.13.1
+scikit-learn==1.5.2
+joblib==1.4.2
+tqdm==4.67.1
+pyarrow==17.0.0
+pydantic==2.11.7
+pydantic-settings==2.6.1
+
+# Computer vision
+opencv-python-headless==4.10.0.84
+
+# YOLO pose
+ultralytics==8.3.40
+
+# Torch (CPU build по умолчанию).
+# Если запускаешь на ноуте с GPU — поставь подходящую CUDA сборку:
+#   pip install torch==2.5.1+cu121 --index-url https://download.pytorch.org/whl/cu121
+torch==2.5.1
+torchvision==0.20.1
+
+# Reranker model
+catboost==1.2.7
+
+# ffmpeg обёртка для финального encoding нарезок
+ffmpeg-python==0.2.0

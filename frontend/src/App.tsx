@@ -3,6 +3,7 @@ import "./App.css";
 import { uploadVideo } from "./api";
 import FightTimeline from "./components/FightTimeline";
 import FightSummary from "./components/FightSummary";
+import FighterDNA from "./components/FighterDNA";
 
 function App() {
     const [selectedFile, setSelectedFile] =
@@ -88,6 +89,10 @@ function App() {
 
                             <FightSummary
                                 summary={result.summary}
+                            />
+
+                            <FighterDNA
+                                dna={result.dna}
                             />
                         </>
                     )

@@ -4,6 +4,7 @@ import { uploadVideo } from "./api";
 import FightTimeline from "./components/FightTimeline";
 import FightSummary from "./components/FightSummary";
 import FighterDNA from "./components/FighterDNA";
+import VideoPlayer from "./components/VideoPlayer";
 
 function App() {
     const [selectedFile, setSelectedFile] =
@@ -83,6 +84,10 @@ function App() {
                     result &&
                     (
                         <>
+                            <VideoPlayer
+                                videoUrl={result.video_url}
+                            />
+
                             <FightTimeline
                                 events={result.events}
                             />

@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+
+# PyCharm
+.idea/
+
+# Node
+node_modules/
+
+# ML
+*.pt
+*.pth
+*.ckpt
+*.parquet
+
+# Videos
+*.mp4
+*.avi
+media/
+outputs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Colab
+.ipynb_checkpoints/
+
+# Env
+.env

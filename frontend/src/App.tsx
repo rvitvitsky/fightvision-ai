@@ -1,6 +1,7 @@
 import { useState } from "react";
 import "./App.css";
 import { uploadVideo } from "./api";
+import FightTimeline from "./components/FightTimeline";
 
 function App() {
     const [selectedFile, setSelectedFile] =
@@ -79,21 +80,9 @@ function App() {
                 {
                     result &&
                     (
-                        <pre
-                            style={{
-                                textAlign: "left",
-                                marginTop: 30,
-                                overflowX: "auto"
-                            }}
-                        >
-                            {
-                                JSON.stringify(
-                                    result,
-                                    null,
-                                    2
-                                )
-                            }
-                        </pre>
+                        <FightTimeline
+                            events={result.events}
+                        />
                     )
                 }
 

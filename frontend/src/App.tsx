@@ -2,6 +2,7 @@ import { useState } from "react";
 import "./App.css";
 import { uploadVideo } from "./api";
 import FightTimeline from "./components/FightTimeline";
+import FightSummary from "./components/FightSummary";
 
 function App() {
     const [selectedFile, setSelectedFile] =
@@ -80,9 +81,15 @@ function App() {
                 {
                     result &&
                     (
-                        <FightTimeline
-                            events={result.events}
-                        />
+                        <>
+                            <FightTimeline
+                                events={result.events}
+                            />
+
+                            <FightSummary
+                                summary={result.summary}
+                            />
+                        </>
                     )
                 }
 

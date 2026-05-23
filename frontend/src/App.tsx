@@ -83,23 +83,33 @@ function App() {
                 {
                     result &&
                     (
-                        <>
-                            <VideoPlayer
-                                videoUrl={result.video_url}
-                            />
+                        <div className="dashboard">
 
-                            <FightTimeline
-                                events={result.events}
-                            />
+                            <div className="top-row">
 
-                            <FightSummary
-                                summary={result.summary}
-                            />
+                                <VideoPlayer
+                                    videoUrl={result.video_url}
+                                />
 
-                            <FighterDNA
-                                dna={result.dna}
-                            />
-                        </>
+                                <FightTimeline
+                                    events={result.events}
+                                />
+
+                            </div>
+
+                            <div className="bottom-row">
+
+                                <FightSummary
+                                    summary={result.summary}
+                                />
+
+                                <FighterDNA
+                                    dna={result.dna}
+                                />
+
+                            </div>
+
+                        </div>
                     )
                 }
 

@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 type Event = {
     time: number;
     fighter: string;
@@ -15,6 +17,10 @@ function FightTimeline({
     events,
     onSelectEvent
 }: Props) {
+
+    const [selectedIndex, setSelectedIndex] =
+        useState<number | null>(null);
+
     return (
         <div className="timeline">
 
@@ -26,34 +32,55 @@ function FightTimeline({
                 events.map((event, index) => (
                     <div
                         key={index}
-                        className="event-card"
-                        onClick={() =>
+                        className={
+                            selectedIndex === index
+                                ? "event-card active-event"
+                                : "event-card"
+                        }
+                        onClick={() => {
+
+                            setSelectedIndex(index);
+
                             onSelectEvent(
                                 event.time
-                            )
-                        }
+                            );
+                        }}
                     >
                         <div>
+
                             <strong>
                                 {event.time}s
                             </strong>
+
                             {" "}
+
                             {event.fighter}
+
                         </div>
 
                         <div>
+
                             {event.hand}
+
                             {" "}
+
                             {event.punch_type}
+
                         </div>
 
                         <div>
+
                             confidence:
+
                             {" "}
+
                             {(
                                 event.confidence * 100
-                            ).toFixed(0)}
+                            ).toFixed(0)
+                            }
+
                             %
+
                         </div>
 
                     </div>

@@ -70,6 +70,10 @@ services:
     environment:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       FV_BACKEND_URL: http://backend:8000
+      FV_BOT_POLL_TIMEOUT: ${FV_BOT_POLL_TIMEOUT:-1800}
+      FV_BOT_POLL_INTERVAL: ${FV_BOT_POLL_INTERVAL:-4}
+      FV_BOT_MAX_VIDEO_MB: ${FV_BOT_MAX_VIDEO_MB:-49}
+      FV_BOT_MAX_RESULT_MB: ${FV_BOT_MAX_RESULT_MB:-49}
     depends_on:
       - backend
     profiles:

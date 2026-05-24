@@ -12,7 +12,6 @@ Event model — предсказывает вероятность удара н�
 """
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -20,6 +19,7 @@ import pandas as pd
 from scipy.signal import find_peaks
 
 from config import ml_settings
+from .compat import joblib_load_compat, load_inference_config, model_path
 
 
 # ----------------------------------------------------------- weights loading
@@ -34,13 +34,12 @@ def _load_bundle() -> Optional[dict]:
     if _BUNDLE is not None:
         return _BUNDLE
 
-    path = ml_settings.model_file("full_pipeline.joblib")
+    path = model_path("full_pipeline.joblib", "full_pipeline(1).joblib")
     if path is None:
         return None
 
     try:
-        from joblib import load
-        _BUNDLE = load(path)
+        _BUNDLE = joblib_load_compat(path)
         print(f"[event_model] loaded bundle from {path}")
         return _BUNDLE
     except Exception as exc:
@@ -130,16 +129,42 @@ def probabilities_to_events(
     if probs_df.empty:
         return pd.DataFrame(columns=["frame", "fighter", "event_score"])
 
-    threshold = threshold if threshold is not None else ml_settings.peak_threshold
-    peak_distance_frames = peak_distance_frames if peak_distance_frames is not None else ml_settings.peak_distance_frames
-    smooth_window = smooth_window if smooth_window is not None else ml_settings.smooth_window
+    cfg = load_inference_config()
+    threshold = threshold if threshold is not None else float(cfg.get("base_peak_threshold", ml_settings.peak_threshold))
+    peak_distance_frames = peak_distance_frames if peak_distance_frames is not None else int(cfg.get("base_peak_distance", ml_settings.peak_distance_frames))
+    smooth_window = smooth_window if smooth_window is not None else int(cfg.get("base_smooth_window", ml_settings.smooth_window))
 
     events: list = []
     for fighter, g in probs_df.groupby("fighter"):
         g = g.sort_values("frame").reset_index(drop=True)
-        sig = g["event_prob"].rolling(window=smooth_window, min_periods=1, center=True).mean().values
+        if g.empty or "event_prob" not in g.columns:
+            continue
 
+        sig = (
+            g["event_prob"]
+            .astype(float)
+            .replace([np.inf, -np.inf], np.nan)
+            .fillna(0.0)
+            .rolling(window=smooth_window, min_periods=1, center=True)
+            .mean()
+            .values
+        )
+
+        # Обычный режим: берём пики выше заданного порога.
         peaks, props = find_peaks(sig, height=threshold, distance=peak_distance_frames)
+
+        # Safety-net для демо/длинных роликов: обученная модель иногда отдаёт
+        # вероятности ниже base_peak_threshold на всём видео. Раньше это давало
+        # пустой список events и падение KeyError('frame') на sort_values.
+        # Теперь не падаем и пробуем адаптивный порог по распределению сигнала.
+        if len(peaks) == 0 and len(sig) > 0 and float(np.nanmax(sig)) > 0.0:
+            adaptive_thr = max(
+                1e-6,
+                float(np.nanquantile(sig, 0.90)),
+                float(np.nanmax(sig)) * 0.35,
+            )
+            peaks, props = find_peaks(sig, height=adaptive_thr, distance=peak_distance_frames)
+
         for p in peaks:
             events.append({
                 "frame": int(g.iloc[p]["frame"]),
@@ -147,4 +172,7 @@ def probabilities_to_events(
                 "event_score": float(sig[p]),
             })
 
-    return pd.DataFrame(events).sort_values("frame").reset_index(drop=True)
+    if not events:
+        return pd.DataFrame(columns=["frame", "fighter", "event_score"])
+
+    return pd.DataFrame(events, columns=["frame", "fighter", "event_score"]).sort_values("frame").reset_index(drop=True)

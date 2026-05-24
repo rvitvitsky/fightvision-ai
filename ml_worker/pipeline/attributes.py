@@ -141,6 +141,109 @@ def _predict_heuristic(events: pd.DataFrame, features_df: pd.DataFrame) -> pd.Da
     return events.merge(attrs_df, on=["frame", "fighter"], how="left")
 
 
+
+# ---------------------------------------------------- effectiveness calibration
+
+
+def _point(row: dict, name: str) -> tuple[float, float]:
+    return float(row.get(f"{name}_x", 0.0) or 0.0), float(row.get(f"{name}_y", 0.0) or 0.0)
+
+
+def _dist(a: tuple[float, float], b: tuple[float, float]) -> float:
+    ax, ay = a
+    bx, by = b
+    if ax == 0.0 and ay == 0.0:
+        return 1e9
+    if bx == 0.0 and by == 0.0:
+        return 1e9
+    return float(np.hypot(ax - bx, ay - by))
+
+
+def _nearest_pose_row(features_df: pd.DataFrame, fighter: str, frame: int) -> dict | None:
+    g = features_df[features_df["fighter"] == fighter].sort_values("frame")
+    if g.empty:
+        return None
+    idx = (g["frame"] - frame).abs().idxmin()
+    return g.loc[idx].to_dict()
+
+
+def _classify_effectiveness(row: dict, features_df: pd.DataFrame) -> str:
+    """Pose-based soft calibration for landed/blocked/miss.
+
+    The trained attribute bundle tends to be over-confident in ``landed`` on our
+    demo videos.  For the product wrapper we add a conservative boxing-specific
+    correction: if the attacking wrist ends near the opponent's guard
+    (wrists/elbows/shoulders) before it gets cleanly to the head/body target, we
+    mark it as ``blocked``.  If the wrist is far from both target and guard, it is
+    marked as ``miss``.  Distances are normalized by opponent bbox height so the
+    rule works on different resolutions.
+    """
+    frame = int(row.get("frame", row.get("event_frame", 0)) or 0)
+    attacker = str(row.get("fighter", "red"))
+    opponent = "blue" if attacker == "red" else "red"
+    hand = str(row.get("hand", "right") or "right")
+    target = str(row.get("target", "head") or "head")
+    confidence = float(row.get("final_score", row.get("event_score", 0.0)) or 0.0)
+
+    atk = _nearest_pose_row(features_df, attacker, frame)
+    opp = _nearest_pose_row(features_df, opponent, frame)
+    if atk is None or opp is None:
+        return str(row.get("effectiveness", "landed") or "landed")
+
+    wrist = _point(atk, f"{hand}_wrist")
+    opp_h = float((opp.get("bbox_y2", 0.0) or 0.0) - (opp.get("bbox_y1", 0.0) or 0.0))
+    scale = max(opp_h, 80.0)
+
+    # Цель удара: голова около nose/shoulder line, корпус около центра плеч-бёдер.
+    if target == "body":
+        ls = _point(opp, "left_shoulder")
+        rs = _point(opp, "right_shoulder")
+        lh = _point(opp, "left_hip")
+        rh = _point(opp, "right_hip")
+        target_points = [
+            ((ls[0] + rs[0] + lh[0] + rh[0]) / 4.0, (ls[1] + rs[1] + lh[1] + rh[1]) / 4.0),
+            lh, rh,
+        ]
+    else:
+        nose = _point(opp, "nose")
+        ls = _point(opp, "left_shoulder")
+        rs = _point(opp, "right_shoulder")
+        target_points = [nose, ((ls[0] + rs[0]) / 2.0, min(ls[1], rs[1]) - 0.12 * scale)]
+
+    guard_points = [
+        _point(opp, "left_wrist"), _point(opp, "right_wrist"),
+        _point(opp, "left_elbow"), _point(opp, "right_elbow"),
+        _point(opp, "left_shoulder"), _point(opp, "right_shoulder"),
+    ]
+
+    d_target = min(_dist(wrist, p) for p in target_points) / scale
+    d_guard = min(_dist(wrist, p) for p in guard_points) / scale
+
+    # More sensitive block pickup: guard contact/near-contact is a block even if
+    # the original classifier said landed.  We keep very high-confidence clean
+    # landed hits as landed to avoid turning everything into blocks.
+    if d_guard <= 0.28 and d_guard <= d_target + 0.12 and confidence < 0.72:
+        return "blocked"
+    if d_guard <= 0.22 and confidence < 0.85:
+        return "blocked"
+
+    # If the wrist never gets close enough to target or guard, treat it as miss.
+    if d_target >= 0.52 and d_guard >= 0.36:
+        return "miss"
+
+    return "landed"
+
+
+def _calibrate_effectiveness(events: pd.DataFrame, features_df: pd.DataFrame) -> pd.DataFrame:
+    if events.empty:
+        return events.copy()
+    out = events.copy()
+    calibrated = []
+    for _, r in out.iterrows():
+        calibrated.append(_classify_effectiveness(r.to_dict(), features_df))
+    out["effectiveness"] = calibrated
+    return out
+
 # ---------------------------------------------------- public API
 
 
@@ -159,5 +262,10 @@ def predict_attributes(events: pd.DataFrame, features_df: pd.DataFrame) -> pd.Da
         if col not in result.columns:
             result[col] = default
         result[col] = result[col].fillna(default)
+
+    # Реальная модель атрибутов на демо часто почти всё отдаёт как landed.
+    # После базового предикта мягко докручиваем landed/blocked/miss по позам,
+    # чтобы статистика и таймлайн начали видеть блоки.
+    result = _calibrate_effectiveness(result, features_df)
 
     return result

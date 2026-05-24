@@ -1,0 +1,11 @@
+{
+  "score_col": "rank_475mlp_525vis",
+  "mlp_weight": 0.475,
+  "vis_weight": 0.525,
+  "threshold": 0.35,
+  "nms_distance": 6,
+  "max_events_per_minute": 80,
+  "base_peak_threshold": 0.25,
+  "base_peak_distance": 10,
+  "base_smooth_window": 5
+}

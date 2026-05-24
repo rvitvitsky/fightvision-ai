@@ -22,6 +22,7 @@ import numpy as np
 import pandas as pd
 
 from config import ml_settings
+from .compat import joblib_load_compat, model_path
 
 
 FRAME_OFFSETS = [-12, -8, -4, 0, 4, 8, 12]
@@ -40,15 +41,31 @@ def _load_visual() -> Optional[dict]:
     if _MODEL is not None:
         return _MODEL
 
-    bundle_path = ml_settings.model_file("visual_reranker.joblib")
-    if bundle_path is None:
+    bundle_path = model_path("visual_reranker.joblib", "visual_reranker(1).joblib")
+    pca_path = model_path("visual_pca.joblib", "visual_pca(1).joblib")
+    cbm_path = model_path("visual_reranker.cbm", "visual_reranker(1).cbm")
+
+    if bundle_path is None and cbm_path is None:
         return None
 
     try:
-        from joblib import load
-        bundle = load(bundle_path)
-        _MODEL = bundle
-        print(f"[visual_reranker] loaded from {bundle_path}")
+        bundle = joblib_load_compat(bundle_path) if bundle_path is not None else None
+
+        # Supported formats:
+        # 1) {"pca": PCA, "clf": CatBoostClassifier}
+        # 2) raw CatBoostClassifier + sidecar visual_pca.joblib
+        if isinstance(bundle, dict):
+            _MODEL = bundle
+        else:
+            clf = bundle
+            if clf is None and cbm_path is not None:
+                from catboost import CatBoostClassifier
+                clf = CatBoostClassifier()
+                clf.load_model(str(cbm_path))
+            pca = joblib_load_compat(pca_path) if pca_path is not None else None
+            _MODEL = {"pca": pca, "clf": clf}
+
+        print(f"[visual_reranker] loaded model bundle from {bundle_path or cbm_path}")
         return _MODEL
     except Exception as exc:
         print(f"[visual_reranker] failed to load: {exc}")
@@ -143,13 +160,39 @@ def rerank_with_visual(
         return out
 
     try:
-        pca = bundle["pca"]
+        pca = bundle.get("pca")
         clf = bundle["clf"]
+
+        # PCA sidecar is required for the current exported CatBoost model.
+        if pca is None:
+            raise RuntimeError("visual PCA is missing; put visual_pca.joblib into ml_worker/models")
+
         emb_pca = pca.transform(embeddings)
-        vis_prob = clf.predict_proba(emb_pca)[:, 1]
+        vis_cols = [f"vis_pca_{i}" for i in range(emb_pca.shape[1])]
+        for i, col in enumerate(vis_cols):
+            out[col] = emb_pca[:, i]
+
+        # The exported CatBoost was trained on pose features + vis_pca_* features.
+        feature_names = list(getattr(clf, "feature_names_", None) or bundle.get("feature_cols", []))
+        if feature_names:
+            rows = []
+            pose_by_fighter = {f: g.sort_values("frame") for f, g in pose_df.groupby("fighter")}
+            for _, ev in out.iterrows():
+                row = ev.to_dict()
+                g = pose_by_fighter.get(ev["fighter"])
+                if g is not None and not g.empty:
+                    idx = (g["frame"] - ev["frame"]).abs().idxmin()
+                    row.update(g.loc[idx].to_dict())
+                rows.append(row)
+            X = pd.DataFrame(rows).reindex(columns=feature_names, fill_value=0.0)
+            X = X.replace([np.inf, -np.inf], np.nan).fillna(0.0)
+        else:
+            X = pd.DataFrame(emb_pca)
+
+        vis_prob = clf.predict_proba(X)[:, 1]
         out["vis_prob"] = vis_prob
     except Exception as exc:
         print(f"[visual_reranker] inference failed: {exc}")
-        out["vis_prob"] = out["event_score"]
+        out["vis_prob"] = out.get("event_score", 0.0)
 
     return out

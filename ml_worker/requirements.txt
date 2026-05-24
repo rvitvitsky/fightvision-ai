@@ -18,6 +18,7 @@ opencv-python-headless==4.10.0.84
 
 # YOLO pose
 ultralytics==8.3.40
+lapx==0.9.4
 
 # Torch (CPU build по умолчанию).
 # Если запускаешь на ноуте с GPU — поставь подходящую CUDA сборку:

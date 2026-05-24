@@ -6,13 +6,13 @@ MLP reranker над pose + visual эмбеддингами (cell 26 ноутбу
 """
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Optional
 
 import numpy as np
 import pandas as pd
 
 from config import ml_settings
+from .compat import model_path, joblib_load_compat
 
 
 _BUNDLE: Optional[dict] = None
@@ -27,13 +27,17 @@ def _load_mlp() -> Optional[dict]:
     if _BUNDLE is not None:
         return _BUNDLE
 
-    path = ml_settings.model_file("mlp_reranker.pt")
+    path = model_path("mlp_reranker.pt", "mlp_reranker(1).pt")
     if path is None:
         return None
 
     try:
         import torch
         bundle = torch.load(path, map_location="cpu", weights_only=False)
+        if isinstance(bundle, dict) and bundle.get("scaler") is None:
+            scaler_path = model_path("mlp_scaler.joblib", "mlp_scaler(1).joblib")
+            if scaler_path is not None:
+                bundle["scaler"] = joblib_load_compat(scaler_path)
         _BUNDLE = bundle
         print(f"[mlp_reranker] loaded from {path}")
         return _BUNDLE
@@ -56,12 +60,32 @@ def rerank_with_mlp(events: pd.DataFrame, features_df: pd.DataFrame) -> pd.DataF
         feature_cols = bundle.get("feature_cols", [])
         scaler = bundle.get("scaler")
         state_dict = bundle["state_dict"]
-        input_dim = bundle.get("input_dim", len(feature_cols))
-        hidden_dim = bundle.get("hidden_dim", 128)
+        input_dim = int(bundle.get("input_dim", bundle.get("in_dim", len(feature_cols))))
 
-        # реконструируем сеть. Тонкости: если архитектура другая —
-        # тренировка должна сохранить конфиг в bundle.
-        class MLP(torch.nn.Module):
+        # Two supported architectures:
+        # - notebook export: BatchNorm -> 512 -> 256 -> 128 -> 1, GELU
+        # - older wrapper export: simple hidden_dim MLP
+        class NotebookMLP(torch.nn.Module):
+            def __init__(self, in_dim):
+                super().__init__()
+                self.net = torch.nn.Sequential(
+                    torch.nn.BatchNorm1d(in_dim),
+                    torch.nn.Linear(in_dim, 512),
+                    torch.nn.GELU(),
+                    torch.nn.Dropout(0.25),
+                    torch.nn.Linear(512, 256),
+                    torch.nn.GELU(),
+                    torch.nn.Dropout(0.20),
+                    torch.nn.Linear(256, 128),
+                    torch.nn.GELU(),
+                    torch.nn.Dropout(0.15),
+                    torch.nn.Linear(128, 1),
+                )
+
+            def forward(self, x):
+                return self.net(x).squeeze(1)
+
+        class SimpleMLP(torch.nn.Module):
             def __init__(self, in_dim, hidden):
                 super().__init__()
                 self.net = torch.nn.Sequential(
@@ -75,29 +99,41 @@ def rerank_with_mlp(events: pd.DataFrame, features_df: pd.DataFrame) -> pd.DataF
                 )
 
             def forward(self, x):
-                return self.net(x)
+                return self.net(x).squeeze(-1)
 
-        model = MLP(input_dim, hidden_dim)
-        model.load_state_dict(state_dict)
+        if "net.0.running_mean" in state_dict:
+            model = NotebookMLP(input_dim)
+        else:
+            model = SimpleMLP(input_dim, int(bundle.get("hidden_dim", 128)))
+        model.load_state_dict(state_dict, strict=True)
         model.eval()
 
-        # подтянем фичи: для каждого event берём ближайший кадр
+        # подтянем фичи: для каждого event берём ближайший pose-frame и
+        # объединяем его с колонками event'а (vis_pca_*, vis_prob, event_score).
         ev_feat = []
         feats_by_fighter = {f: g.sort_values("frame") for f, g in features_df.groupby("fighter")}
         for _, ev in events.iterrows():
+            row = ev.to_dict()
             g = feats_by_fighter.get(ev["fighter"])
-            if g is None or g.empty:
-                ev_feat.append({c: 0.0 for c in feature_cols})
-                continue
-            idx = (g["frame"] - ev["frame"]).abs().idxmin()
-            ev_feat.append(g.loc[idx, feature_cols].to_dict() if all(c in g.columns for c in feature_cols) else {c: 0.0 for c in feature_cols})
+            if g is not None and not g.empty:
+                idx = (g["frame"] - ev["frame"]).abs().idxmin()
+                base = g.loc[idx].to_dict()
+                base.update(row)
+                row = base
+            ev_feat.append(row)
 
-        X = pd.DataFrame(ev_feat).reindex(columns=feature_cols, fill_value=0.0).values.astype(np.float32)
+        X = (
+            pd.DataFrame(ev_feat)
+            .reindex(columns=feature_cols, fill_value=0.0)
+            .replace([np.inf, -np.inf], np.nan)
+            .fillna(0.0)
+            .values.astype(np.float32)
+        )
         if scaler is not None:
             X = scaler.transform(X)
 
         with torch.no_grad():
-            logits = model(torch.from_numpy(X.astype(np.float32))).squeeze(-1).numpy()
+            logits = model(torch.from_numpy(X.astype(np.float32))).numpy()
         probs = 1.0 / (1.0 + np.exp(-logits))
         out["mlp_prob"] = probs
     except Exception as exc:

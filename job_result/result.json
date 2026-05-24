@@ -1,0 +1,113 @@
+{
+  "video_url": "/media/results/0afaf829-c0d2-42fd-80b1-eb5fff70fae0/highlights.mp4",
+  "highlights_url": "/media/results/0afaf829-c0d2-42fd-80b1-eb5fff70fae0/highlights.mp4",
+  "events": [
+    {
+      "time": 3.567,
+      "frame": 107,
+      "fighter": "red",
+      "hand": "left",
+      "punch_type": "hook",
+      "target": "head",
+      "effectiveness": "landed",
+      "confidence": 0.794
+    },
+    {
+      "time": 7.267,
+      "frame": 218,
+      "fighter": "blue",
+      "hand": "left",
+      "punch_type": "hook",
+      "target": "head",
+      "effectiveness": "landed",
+      "confidence": 0.772
+    },
+    {
+      "time": 24.133,
+      "frame": 724,
+      "fighter": "red",
+      "hand": "left",
+      "punch_type": "hook",
+      "target": "head",
+      "effectiveness": "landed",
+      "confidence": 0.819
+    },
+    {
+      "time": 27.233,
+      "frame": 817,
+      "fighter": "red",
+      "hand": "left",
+      "punch_type": "hook",
+      "target": "body",
+      "effectiveness": "landed",
+      "confidence": 0.892
+    },
+    {
+      "time": 41.267,
+      "frame": 1238,
+      "fighter": "red",
+      "hand": "left",
+      "punch_type": "hook",
+      "target": "head",
+      "effectiveness": "landed",
+      "confidence": 0.904
+    },
+    {
+      "time": 63.067,
+      "frame": 1892,
+      "fighter": "red",
+      "hand": "left",
+      "punch_type": "hook",
+      "target": "body",
+      "effectiveness": "landed",
+      "confidence": 0.777
+    },
+    {
+      "time": 78.067,
+      "frame": 2342,
+      "fighter": "red",
+      "hand": "left",
+      "punch_type": "hook",
+      "target": "head",
+      "effectiveness": "landed",
+      "confidence": 0.874
+    }
+  ],
+  "summary": {
+    "red": {
+      "punches": 6,
+      "accuracy": 1.0,
+      "landed": 6,
+      "blocked": 0,
+      "missed": 0
+    },
+    "blue": {
+      "punches": 1,
+      "accuracy": 1.0,
+      "landed": 1,
+      "blocked": 0,
+      "missed": 0
+    }
+  },
+  "dna": {
+    "red": {
+      "aggression": 46,
+      "defense": 0,
+      "mobility": 62,
+      "pressure": 47
+    },
+    "blue": {
+      "aggression": 8,
+      "defense": 0,
+      "mobility": 49,
+      "pressure": 46
+    }
+  },
+  "model_info": {
+    "event_model": "real",
+    "attribute_model": "real",
+    "visual_reranker": "real",
+    "mlp_reranker": "real",
+    "yolo_model": "yolov8n-pose.pt"
+  }
+}

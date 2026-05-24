@@ -161,6 +161,8 @@ def run_inference(
         pad_after=ml_settings.highlight_pad_after,
         progress_callback=start_stage(7),
         overlay_pose_df=poses_df,
+        draw_boxes=False,
+        draw_event_labels=True,
     )
     finish_stage()
 

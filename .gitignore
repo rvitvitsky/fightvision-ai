@@ -3,24 +3,37 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.egg-info/
 .venv/
 venv/
+.pytest_cache/
 
-# PyCharm
+# PyCharm / VSCode
 .idea/
+.vscode/
 
 # Node
 node_modules/
+frontend/dist/
 
 # ML
 *.pt
 *.pth
 *.ckpt
 *.parquet
+*.joblib
+!**/requirements.txt
+ml_worker/models/*.pt
+ml_worker/models/*.joblib
+ml_worker/features/
+ml_worker/work/
 
-# Videos
+# Videos & media
 *.mp4
 *.avi
+*.mov
+*.mkv
+*.webm
 media/
 outputs/
 
@@ -28,8 +41,15 @@ outputs/
 .DS_Store
 Thumbs.db
 
+# Env
+.env
+.env.local
+
+# Logs
+*.log
+
 # Colab
 .ipynb_checkpoints/
 
-# Env
-.env
+# Docker
+docker-compose.override.yml

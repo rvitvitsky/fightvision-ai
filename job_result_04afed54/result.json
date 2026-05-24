@@ -1,0 +1,163 @@
+{
+  "video_url": "/media/results/04afed54-d204-4aa7-a49d-fb258c200f96/highlights.mp4",
+  "highlights_url": "/media/results/04afed54-d204-4aa7-a49d-fb258c200f96/highlights.mp4",
+  "events": [
+    {
+      "time": 56.433,
+      "frame": 1693,
+      "fighter": "blue",
+      "hand": "left",
+      "punch_type": "hook",
+      "target": "head",
+      "effectiveness": "landed",
+      "confidence": 0.778
+    },
+    {
+      "time": 57.467,
+      "frame": 1724,
+      "fighter": "blue",
+      "hand": "left",
+      "punch_type": "hook",
+      "target": "head",
+      "effectiveness": "landed",
+      "confidence": 0.764
+    },
+    {
+      "time": 74.4,
+      "frame": 2232,
+      "fighter": "red",
+      "hand": "left",
+      "punch_type": "hook",
+      "target": "head",
+      "effectiveness": "landed",
+      "confidence": 0.897
+    },
+    {
+      "time": 109.833,
+      "frame": 3295,
+      "fighter": "red",
+      "hand": "left",
+      "punch_type": "hook",
+      "target": "head",
+      "effectiveness": "landed",
+      "confidence": 0.875
+    },
+    {
+      "time": 110.733,
+      "frame": 3322,
+      "fighter": "red",
+      "hand": "left",
+      "punch_type": "hook",
+      "target": "head",
+      "effectiveness": "landed",
+      "confidence": 0.88
+    },
+    {
+      "time": 134.467,
+      "frame": 4034,
+      "fighter": "red",
+      "hand": "left",
+      "punch_type": "hook",
+      "target": "head",
+      "effectiveness": "landed",
+      "confidence": 0.796
+    },
+    {
+      "time": 171.133,
+      "frame": 5134,
+      "fighter": "red",
+      "hand": "left",
+      "punch_type": "hook",
+      "target": "head",
+      "effectiveness": "landed",
+      "confidence": 0.872
+    },
+    {
+      "time": 174.367,
+      "frame": 5231,
+      "fighter": "red",
+      "hand": "left",
+      "punch_type": "hook",
+      "target": "head",
+      "effectiveness": "landed",
+      "confidence": 0.836
+    },
+    {
+      "time": 198.033,
+      "frame": 5941,
+      "fighter": "red",
+      "hand": "left",
+      "punch_type": "hook",
+      "target": "body",
+      "effectiveness": "landed",
+      "confidence": 0.761
+    },
+    {
+      "time": 231.533,
+      "frame": 6946,
+      "fighter": "red",
+      "hand": "left",
+      "punch_type": "hook",
+      "target": "body",
+      "effectiveness": "landed",
+      "confidence": 0.809
+    },
+    {
+      "time": 233.3,
+      "frame": 6999,
+      "fighter": "red",
+      "hand": "left",
+      "punch_type": "hook",
+      "target": "body",
+      "effectiveness": "landed",
+      "confidence": 0.921
+    },
+    {
+      "time": 236.933,
+      "frame": 7108,
+      "fighter": "red",
+      "hand": "left",
+      "punch_type": "hook",
+      "target": "head",
+      "effectiveness": "landed",
+      "confidence": 0.915
+    }
+  ],
+  "summary": {
+    "red": {
+      "punches": 10,
+      "accuracy": 1.0,
+      "landed": 10,
+      "blocked": 0,
+      "missed": 0
+    },
+    "blue": {
+      "punches": 2,
+      "accuracy": 1.0,
+      "landed": 2,
+      "blocked": 0,
+      "missed": 0
+    }
+  },
+  "dna": {
+    "red": {
+      "aggression": 34,
+      "defense": 0,
+      "mobility": 54,
+      "pressure": 44
+    },
+    "blue": {
+      "aggression": 7,
+      "defense": 0,
+      "mobility": 62,
+      "pressure": 42
+    }
+  },
+  "model_info": {
+    "event_model": "real",
+    "attribute_model": "real",
+    "visual_reranker": "real",
+    "mlp_reranker": "real",
+    "yolo_model": "yolov8n-pose.pt"
+  }
+}

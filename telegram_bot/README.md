@@ -1,47 +1,43 @@
 # FightVision Telegram Bot
 
-Бот на aiogram 3, который принимает видео и возвращает нарезку ударов + сводку.
-Сам по себе модели не запускает — ходит в gateway (`backend/`).
+Бот на aiogram 3 принимает видео, отправляет его в FastAPI backend, ждёт обработку, возвращает нарезку ударов и сводку.
 
-## Локальный запуск
+## Docker-запуск вместе с сайтом
+
+1. В корне проекта создай `.env` из `.env.example`.
+2. Впиши `TELEGRAM_BOT_TOKEN`.
+3. Запусти весь стек с bot-профилем:
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-
-export TELEGRAM_BOT_TOKEN=xxx:xxx
-export FV_BACKEND_URL=http://localhost:8000
-
-python bot.py
+docker compose --profile bot up --build
 ```
+
+Если сайт/worker уже собраны, быстрее:
+
+```bash
+docker compose --profile bot build telegram_bot
+docker compose --profile bot up
+```
+
+## Проверка
+
+В Telegram открой своего бота и отправь:
+
+```text
+/start
+/health
+```
+
+`/health` должен ответить, что backend на связи.
 
 ## Команды
 
 - `/start` — приветствие
 - `/help` — справка
-- `/health` — проверка связи с backend'ом (полезно когда бот молчит)
+- `/health` — проверка связи с backend
 
 ## Ограничения
 
-- Telegram Bot API ограничивает файлы загрузкой до **50 МБ**. Если у юзера видео больше — попросим залить на сайт.
-- Опрос статуса работает до `FV_BOT_POLL_TIMEOUT` секунд (по умолчанию 15 минут).
-
-## Архитектура
-
-```
-User → [video] → bot.py
-                  ↓
-              api_client.py
-                  ↓
-              POST /api/analyze → {job_id}
-                  ↓
-              GET /api/jobs/{id} (poll) → progress
-                  ↓
-              GET /api/jobs/{id}/result
-                  ↓
-              GET /media/.../highlights.mp4
-                  ↓
-User ← [highlights.mp4 + сводка]
-```
-
-То есть в боте нет ни pyTorch, ни YOLO, ни opencv — только httpx и aiogram.
+- Видео через Telegram лучше держать до 49 МБ.
+- Если нарезка получится слишком большой, бот пришлёт сводку и попросит забрать файл через сайт/папку `media/results`.
+- Для больших 5–10 минутных видео удобнее сайт: Telegram будет долго ждать и может упереться в лимиты размера.

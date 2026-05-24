@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Callable, Optional
+import shutil
+import subprocess
 
 import cv2
 import pandas as pd
@@ -37,13 +39,16 @@ def build_highlights_reel(
     pad_after: float = 0.6,
     progress_callback: Optional[Callable[[float], None]] = None,
     overlay_pose_df: Optional[pd.DataFrame] = None,
+    draw_boxes: bool = False,
+    draw_event_labels: bool = True,
 ) -> Optional[str]:
     """Создаёт mp4-нарезку вокруг ударов.
 
     Если в events нет ни одного удара — возвращает None и файл не создаётся.
 
-    Если передать ``overlay_pose_df`` — поверх клипов будут нарисованы bbox-ы и
-    лейблы текущего удара (как в render_overlay).
+    По умолчанию нарезка чистая: без bbox-прямоугольников.
+    ``draw_event_labels=True`` оставляет аккуратную подпись удара снизу.
+    ``draw_boxes=True`` можно включить для debug-режима, если нужен overlay bbox.
     """
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
 
@@ -71,15 +76,21 @@ def build_highlights_reel(
         cap.release()
         return None
 
+    # OpenCV часто пишет mp4v, который нормально открывается в VLC,
+    # но может не воспроизводиться в браузере. Поэтому сначала пишем
+    # временный mp4, а в конце перекодируем в H.264 + yuv420p через ffmpeg.
+    out_file = Path(out_path)
+    tmp_out_path = str(out_file.with_name(out_file.stem + "_raw.mp4"))
+
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    writer = cv2.VideoWriter(out_path, fourcc, fps, (width, height))
+    writer = cv2.VideoWriter(tmp_out_path, fourcc, fps, (width, height))
     if not writer.isOpened():
         cap.release()
-        raise RuntimeError(f"Cannot open VideoWriter for {out_path}")
+        raise RuntimeError(f"Cannot open VideoWriter for {tmp_out_path}")
 
-    # для возможного overlay: lookup events по кадру
+    # lookup events по кадру: подпись удара можно рисовать без bbox-разметки
     event_by_frame: dict[int, dict] = {}
-    if overlay_pose_df is not None:
+    if draw_event_labels:
         for _, ev in events.iterrows():
             f = int(ev["frame"])
             for off in range(-3, pad_a_frames + 1):
@@ -93,7 +104,9 @@ def build_highlights_reel(
                     "fighter": ev["fighter"],
                 }
 
-    from .overlay import COLORS, _bbox_at_frame, _draw_label
+    from .overlay import COLORS, _draw_label
+    if draw_boxes:
+        from .overlay import _bbox_at_frame
 
     total_window_frames = sum(end - start + 1 for start, end in windows)
     processed = 0
@@ -107,16 +120,16 @@ def build_highlights_reel(
                 if not ret:
                     break
 
-                if overlay_pose_df is not None:
+                if draw_boxes and overlay_pose_df is not None:
                     for fighter in ("red", "blue"):
                         bbox = _bbox_at_frame(overlay_pose_df, frame_idx, fighter)
                         if bbox is not None:
                             x1, y1, x2, y2 = bbox
                             cv2.rectangle(frame, (x1, y1), (x2, y2), COLORS[fighter], 2)
 
-                    lbl = event_by_frame.get(frame_idx)
-                    if lbl is not None:
-                        _draw_label(frame, lbl["text"], (30, height - 30), COLORS[lbl["fighter"]], scale=0.85)
+                lbl = event_by_frame.get(frame_idx)
+                if lbl is not None:
+                    _draw_label(frame, lbl["text"], (30, height - 30), COLORS[lbl["fighter"]], scale=0.85)
 
                 writer.write(frame)
 
@@ -127,6 +140,35 @@ def build_highlights_reel(
     finally:
         cap.release()
         writer.release()
+
+    # Финальный web-friendly encode. Это чинит воспроизведение <video> в Chrome/Edge/Safari.
+    try:
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-loglevel",
+            "error",
+            "-i",
+            tmp_out_path,
+            "-c:v",
+            "libx264",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "23",
+            "-pix_fmt",
+            "yuv420p",
+            "-movflags",
+            "+faststart",
+            out_path,
+        ]
+        subprocess.run(cmd, check=True)
+        Path(tmp_out_path).unlink(missing_ok=True)
+    except Exception as exc:
+        # Если ffmpeg по какой-то причине не сработал, не валим весь pipeline:
+        # оставляем сырой mp4, который обычно можно открыть локально/VLC.
+        print(f"[highlights] ffmpeg web transcode failed, using raw mp4: {exc}")
+        shutil.move(tmp_out_path, out_path)
 
     if progress_callback is not None:
         progress_callback(1.0)
